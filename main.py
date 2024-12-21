@@ -21,6 +21,11 @@ class MyGame(ShowBase):
 
         self.selectedBlockType = 'grass'
         self.currentFrameIndex = 0
+        
+        self.showFences = True
+        self.showFoods = True
+        self.showSnakes = True
+        self.showEnemies = True
 
         self.loadModels()
         self.setupLights()
@@ -101,50 +106,54 @@ class MyGame(ShowBase):
         # Clear existing terrain blocks
         render.findAllMatches('new-block-placeholder').detach()
 
-        fences = data['fences']
-        for fence in fences:
-            self.createNewBlock(
-                fence[0] * 2 - 20,
-                fence[1] * 2 - 20,
-                fence[2] * 2,
-                'dirt'
-            )
-
-        snakes = data['snakes']
-        for snake in snakes:
-            if snake['status'] != 'alive':
-                continue
-
-            for snakeBlock in snake['geometry']:
+        if self.showFences:
+            fences = data['fences']
+            for fence in fences:
                 self.createNewBlock(
-                    snakeBlock[0] * 2 - 20,
-                    snakeBlock[1] * 2 - 20,
-                    snakeBlock[2] * 2,
+                    fence[0] * 2 - 20,
+                    fence[1] * 2 - 20,
+                    fence[2] * 2,
                     'sand'
                 )
 
-        enemies = data['snakes']
-        for enemy in enemies:
-            if enemy['status'] != 'alive':
-                continue
-
-            for enemyBlock in enemy['geometry']:
+        if self.showFoods:
+            foods = data['food']
+            for food in foods:
+                foodBlock = food['c']
                 self.createNewBlock(
-                    enemyBlock[0] * 2 - 20,
-                    enemyBlock[1] * 2 - 20,
-                    enemyBlock[2] * 2,
-                    'sand'
+                    foodBlock[0] * 2 - 20,
+                    foodBlock[1] * 2 - 20,
+                    foodBlock[2] * 2,
+                    'stone'
                 )
 
-        foods = data['food']
-        for food in foods:
-            foodBlock = food['c']
-            self.createNewBlock(
-                foodBlock[0] * 2 - 20,
-                foodBlock[1] * 2 - 20,
-                foodBlock[2] * 2,
-                'stone'
-            )
+        if self.showSnakes:
+            snakes = data['snakes']
+            for snake in snakes:
+                if snake['status'] != 'alive':
+                    continue
+
+                for snakeBlock in snake['geometry']:
+                    self.createNewBlock(
+                        snakeBlock[0] * 2 - 20,
+                        snakeBlock[1] * 2 - 20,
+                        snakeBlock[2] * 2,
+                        'dirt'
+                    )
+
+        if self.showEnemies:
+            enemies = data['enemies']
+            for enemy in enemies:
+                if enemy['status'] != 'alive':
+                    continue
+
+                for enemyBlock in enemy['geometry']:
+                    self.createNewBlock(
+                        enemyBlock[0] * 2 - 20,
+                        enemyBlock[1] * 2 - 20,
+                        enemyBlock[2] * 2,
+                        'grass'
+                    )
 
     def nextFrame(self):
         self.currentFrameIndex += 1
@@ -152,6 +161,22 @@ class MyGame(ShowBase):
 
     def previousFrame(self):
         self.currentFrameIndex -= 1
+        self.generateTerrain()
+
+    def changeShowFences(self):
+        self.showFences = not self.showFences
+        self.generateTerrain()
+
+    def changeShowFoods(self):
+        self.showFoods = not self.showFoods
+        self.generateTerrain()
+
+    def changeShowSnakes(self):
+        self.showSnakes = not self.showSnakes
+        self.generateTerrain()
+
+    def changeShowEnemies(self):
+        self.showEnemies = not self.showEnemies
         self.generateTerrain()
 
     def createNewBlock(self, x, y, z, type):
@@ -224,6 +249,11 @@ class MyGame(ShowBase):
 
         self.accept('+', self.nextFrame)
         self.accept('-', self.previousFrame)
+
+        self.accept('1', self.changeShowFences)
+        self.accept('2', self.changeShowFoods)
+        self.accept('3', self.changeShowSnakes)
+        self.accept('4', self.changeShowEnemies)
 
     def setSelectedBlockType(self, type):
         self.selectedBlockType = type
