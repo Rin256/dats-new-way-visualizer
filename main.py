@@ -1,5 +1,6 @@
 from math import pi, sin, cos
 import json
+import time
 
 from direct.showbase.ShowBase import ShowBase
 from panda3d.core import loadPrcFile
@@ -19,6 +20,7 @@ class MyGame(ShowBase):
         ShowBase.__init__(self)
 
         self.selectedBlockType = 'grass'
+        self.currentFrameIndex = 0
 
         self.loadModels()
         self.setupLights()
@@ -85,7 +87,109 @@ class MyGame(ShowBase):
             self.lastMouseY = mouseY
 
         return task.cont
-    
+
+    def generateTerrain(self):
+        # Load data dynamically based on the current frame index
+        file_name = f'data/{self.currentFrameIndex}.json'
+        try:
+            with open(file_name, encoding='utf-8-sig') as file:
+                data = json.load(file)
+        except FileNotFoundError:
+            print(f"No such file: {file_name}")
+            return
+
+        # Clear existing terrain blocks
+        render.findAllMatches('new-block-placeholder').detach()
+
+        fences = data['fences']
+        for fence in fences:
+            self.createNewBlock(
+                fence[0] * 2 - 20,
+                fence[1] * 2 - 20,
+                fence[2] * 2,
+                'dirt'
+            )
+
+        snakes = data['snakes']
+        for snake in snakes:
+            if snake['status'] != 'alive':
+                continue
+
+            for snakeBlock in snake['geometry']:
+                self.createNewBlock(
+                    snakeBlock[0] * 2 - 20,
+                    snakeBlock[1] * 2 - 20,
+                    snakeBlock[2] * 2,
+                    'sand'
+                )
+
+        enemies = data['snakes']
+        for enemy in enemies:
+            if enemy['status'] != 'alive':
+                continue
+
+            for enemyBlock in enemy['geometry']:
+                self.createNewBlock(
+                    enemyBlock[0] * 2 - 20,
+                    enemyBlock[1] * 2 - 20,
+                    enemyBlock[2] * 2,
+                    'sand'
+                )
+
+        foods = data['food']
+        for food in foods:
+            foodBlock = food['c']
+            self.createNewBlock(
+                foodBlock[0] * 2 - 20,
+                foodBlock[1] * 2 - 20,
+                foodBlock[2] * 2,
+                'stone'
+            )
+
+    def nextFrame(self):
+        self.currentFrameIndex += 1
+        self.generateTerrain()
+
+    def previousFrame(self):
+        self.currentFrameIndex -= 1
+        self.generateTerrain()
+
+    def createNewBlock(self, x, y, z, type):
+        newBlockNode = render.attachNewNode('new-block-placeholder')
+        newBlockNode.setPos(x, y, z)
+
+        if type == 'grass':
+            self.grassBlock.instanceTo(newBlockNode)
+        elif type == 'dirt':
+            self.dirtBlock.instanceTo(newBlockNode)
+        elif type == 'sand':
+            self.sandBlock.instanceTo(newBlockNode)
+        elif type == 'stone':
+            self.stoneBlock.instanceTo(newBlockNode)
+
+        blockSolid = CollisionBox((-1, -1, -1), (1, 1, 1))
+        blockNode = CollisionNode('block-collision-node')
+        blockNode.addSolid(blockSolid)
+        collider = newBlockNode.attachNewNode(blockNode)
+        collider.setPythonTag('owner', newBlockNode)
+
+    def loadModels(self):
+        self.grassBlock = loader.loadModel('grass-block.glb')
+        self.dirtBlock = loader.loadModel('dirt-block.glb')
+        self.stoneBlock = loader.loadModel('stone-block.glb')
+        self.sandBlock = loader.loadModel('sand-block.glb')
+
+    def setupLights(self):
+        mainLight = DirectionalLight('main light')
+        mainLightNodePath = render.attachNewNode(mainLight)
+        mainLightNodePath.setHpr(30, -60, 0)
+        render.setLight(mainLightNodePath)
+
+        ambientLight = AmbientLight('ambient light')
+        ambientLight.setColor((0.3, 0.3, 0.3, 1))
+        ambientLightNodePath = render.attachNewNode(ambientLight)
+        render.setLight(ambientLightNodePath)
+
     def setupControls(self):
         self.keyMap = {
             "forward": False,
@@ -117,10 +221,13 @@ class MyGame(ShowBase):
         self.accept('2', self.setSelectedBlockType, ['dirt'])
         self.accept('3', self.setSelectedBlockType, ['sand'])
         self.accept('4', self.setSelectedBlockType, ['stone'])
-    
+
+        self.accept('+', self.nextFrame)
+        self.accept('-', self.previousFrame)
+
     def setSelectedBlockType(self, type):
         self.selectedBlockType = type
-    
+
     def handleLeftClick(self):
         self.captureMouse()
         self.removeBlock()
@@ -151,7 +258,7 @@ class MyGame(ShowBase):
                 hitBlockPos = hitObject.getPos()
                 newBlockPos = hitBlockPos + normal * 2
                 self.createNewBlock(newBlockPos.x, newBlockPos.y, newBlockPos.z, self.selectedBlockType)
-    
+
     def updateKeyMap(self, key, value):
         self.keyMap[key] = value
 
@@ -203,91 +310,6 @@ class MyGame(ShowBase):
         skybox.setDepthWrite(0)
         skybox.setLightOff()
         skybox.reparentTo(render)
-    
-    def generateTerrain(self):
-        with open('data/63870361398570.json', encoding='utf-8-sig') as file:
-            data = json.load(file)
 
-        fences = data['fences']
-        for fence in fences:
-            self.createNewBlock(
-                fence[0] * 2 - 20,
-                fence[1] * 2 - 20,
-                fence[2] * 2,
-                'dirt'
-            )
-
-        snakes = data['snakes']
-        for snake in snakes:
-            if snake['status'] != 'alive':
-                continue
-
-            for snakeBlock in snake['geometry']:
-                self.createNewBlock(
-                    snakeBlock[0] * 2 - 20,
-                    snakeBlock[1] * 2 - 20,
-                    snakeBlock[2] * 2,
-                    'sand'
-                )
-
-        enemies = data['snakes']
-        for enemy in enemies:
-            if enemy['status'] != 'alive':
-                continue
-
-            for enemyBlock in enemy['geometry']:
-                self.createNewBlock(
-                    enemyBlock[0] * 2 - 20,
-                    enemyBlock[1] * 2 - 20,
-                    enemyBlock[2] * 2,
-                    'sand'
-                )
-
-        foods = data['food']
-        for food in foods:
-            foodBlock = food['c']
-            self.createNewBlock(
-                foodBlock[0] * 2 - 20,
-                foodBlock[1] * 2 - 20,
-                foodBlock[2] * 2,
-                'stone'
-            )
-
-    def createNewBlock(self, x, y, z, type):
-        newBlockNode = render.attachNewNode('new-block-placeholder')
-        newBlockNode.setPos(x, y, z)
-
-        if type == 'grass':
-            self.grassBlock.instanceTo(newBlockNode)
-        elif type == 'dirt':
-            self.dirtBlock.instanceTo(newBlockNode)
-        elif type == 'sand':
-            self.sandBlock.instanceTo(newBlockNode)
-        elif type == 'stone':
-            self.stoneBlock.instanceTo(newBlockNode)
-
-        blockSolid = CollisionBox((-1, -1, -1), (1, 1, 1))
-        blockNode = CollisionNode('block-collision-node')
-        blockNode.addSolid(blockSolid)
-        collider = newBlockNode.attachNewNode(blockNode)
-        collider.setPythonTag('owner', newBlockNode)
-
-    def loadModels(self):
-        self.grassBlock = loader.loadModel('grass-block.glb')
-        self.dirtBlock = loader.loadModel('dirt-block.glb')
-        self.stoneBlock = loader.loadModel('stone-block.glb')
-        self.sandBlock = loader.loadModel('sand-block.glb')
-
-    def setupLights(self):
-        mainLight = DirectionalLight('main light')
-        mainLightNodePath = render.attachNewNode(mainLight)
-        mainLightNodePath.setHpr(30, -60, 0)
-        render.setLight(mainLightNodePath)
-
-        ambientLight = AmbientLight('ambient light')
-        ambientLight.setColor((0.3, 0.3, 0.3, 1))
-        ambientLightNodePath = render.attachNewNode(ambientLight)
-        render.setLight(ambientLightNodePath)
-    
 game = MyGame()
 game.run()
