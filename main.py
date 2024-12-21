@@ -19,7 +19,7 @@ class MyGame(ShowBase):
     def __init__(self):
         ShowBase.__init__(self)
 
-        self.selectedBlockType = 'grass'
+        self.selectedBlockType = 'snake'
         self.currentFrameIndex = 0
         
         self.showFences = True
@@ -124,7 +124,7 @@ class MyGame(ShowBase):
                     foodBlock[0] * 2 - 20,
                     foodBlock[1] * 2 - 20,
                     foodBlock[2] * 2,
-                    'stone'
+                    'food'
                 )
 
         if self.showSnakes:
@@ -138,7 +138,7 @@ class MyGame(ShowBase):
                         snakeBlock[0] * 2 - 20,
                         snakeBlock[1] * 2 - 20,
                         snakeBlock[2] * 2,
-                        'dirt'
+                        'snake'
                     )
 
         if self.showEnemies:
@@ -152,7 +152,7 @@ class MyGame(ShowBase):
                         enemyBlock[0] * 2 - 20,
                         enemyBlock[1] * 2 - 20,
                         enemyBlock[2] * 2,
-                        'grass'
+                        'enemy'
                     )
 
     def nextFrame(self):
@@ -183,14 +183,14 @@ class MyGame(ShowBase):
         newBlockNode = render.attachNewNode('new-block-placeholder')
         newBlockNode.setPos(x, y, z)
 
-        if type == 'grass':
-            self.grassBlock.instanceTo(newBlockNode)
-        elif type == 'dirt':
-            self.dirtBlock.instanceTo(newBlockNode)
+        if type == 'snake':
+            self.snakeBlock.instanceTo(newBlockNode)
+        elif type == 'enemy':
+            self.enemyBlock.instanceTo(newBlockNode)
         elif type == 'sand':
             self.sandBlock.instanceTo(newBlockNode)
-        elif type == 'stone':
-            self.stoneBlock.instanceTo(newBlockNode)
+        elif type == 'food':
+            self.foodBlock.instanceTo(newBlockNode)
 
         blockSolid = CollisionBox((-1, -1, -1), (1, 1, 1))
         blockNode = CollisionNode('block-collision-node')
@@ -199,9 +199,9 @@ class MyGame(ShowBase):
         collider.setPythonTag('owner', newBlockNode)
 
     def loadModels(self):
-        self.grassBlock = loader.loadModel('grass-block.glb')
-        self.dirtBlock = loader.loadModel('dirt-block.glb')
-        self.stoneBlock = loader.loadModel('stone-block.glb')
+        self.snakeBlock = loader.loadModel('snake-block.glb')
+        self.enemyBlock = loader.loadModel('enemy-block.glb')
+        self.foodBlock = loader.loadModel('food-block.glb')
         self.sandBlock = loader.loadModel('sand-block.glb')
 
     def setupLights(self):
@@ -242,10 +242,10 @@ class MyGame(ShowBase):
         self.accept('lshift', self.updateKeyMap, ['down', True])
         self.accept('lshift-up', self.updateKeyMap, ['down', False])
 
-        self.accept('1', self.setSelectedBlockType, ['grass'])
-        self.accept('2', self.setSelectedBlockType, ['dirt'])
+        self.accept('1', self.setSelectedBlockType, ['snake'])
+        self.accept('2', self.setSelectedBlockType, ['enemy'])
         self.accept('3', self.setSelectedBlockType, ['sand'])
-        self.accept('4', self.setSelectedBlockType, ['stone'])
+        self.accept('4', self.setSelectedBlockType, ['food'])
 
         self.accept('+', self.nextFrame)
         self.accept('-', self.previousFrame)
